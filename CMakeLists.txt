@@ -16,7 +16,7 @@ find_package(std_msgs REQUIRED)
 add_executable(rover_serialise src/rover_serialise.cpp)
 ament_target_dependencies(rover_serialise rclcpp std_msgs)
 
-install(TARGET
+install(TARGETS
   rover_serialise
   DESTINATION lib/${PROJECT_NAME})
 
