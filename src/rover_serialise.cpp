@@ -13,9 +13,9 @@ class MotorSerialiser : public rclcpp::Node
         }
 
     private:
-        char motor_num0;
-        char motor_num1;
-        char motor_num2;
+        char motor_num0 = '0';
+        char motor_num1 = '1';
+        char motor_num2 = '2';
         void motor0_callback(const std_msgs::msg::UInt8 &msg) const
         {
             // Callback code goes here
