@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Subscribes to three ROS topics of UInt8 and sends the values as serial through a USB connection.</description>
   <maintainer email="richardloongcj@gmail.com">Richard Loong</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache License 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
