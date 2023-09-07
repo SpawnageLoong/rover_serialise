@@ -59,12 +59,12 @@ class MotorSerialiser : public rclcpp::Node
         std::string topic3_name = "/motors_pwm/motor3";
         std::string topic4_name = "/motors_pwm/motor4";
         std::string topic5_name = "/motors_pwm/motor5";
-        unit8_t motor0_pwm = 0;
-        unit8_t motor1_pwm = 0;
-        unit8_t motor2_pwm = 0;
-        unit8_t motor3_pwm = 0;
-        unit8_t motor4_pwm = 0;
-        unit8_t motor5_pwm = 0;
+        uint8_t motor0_pwm = 0;
+        uint8_t motor1_pwm = 0;
+        uint8_t motor2_pwm = 0;
+        uint8_t motor3_pwm = 0;
+        uint8_t motor4_pwm = 0;
+        uint8_t motor5_pwm = 0;
 
         void motor0_callback(const std_msgs::msg::UInt8 &msg) const
         {
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<MotorSerialiser>(argv[1]);
-    std::cout << "MotorSerialiser started" << endl;
+    std::cout << "MotorSerialiser started" << std::endl;
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
