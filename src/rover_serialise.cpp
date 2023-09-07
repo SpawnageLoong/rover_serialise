@@ -1,3 +1,14 @@
+/**
+ * @file rover_serialise.cpp
+ * @author Richard Loong (richardloongcj@gmail.com)
+ * @brief A ROS Node to serialise the target PWM values of the motors and send them over serial
+ * @version 0.1
+ * @date 2023-09-07
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include <chrono>
 #include <iostream>
 #include "rclcpp/rclcpp.hpp"
@@ -94,6 +105,7 @@ class MotorSerialiser : public rclcpp::Node
         {
             RCLCPP_INFO(this->get_logger(), "Timer callback");
             // TODO: Write the PWM values to the two byte arrays and send over serial
+            
         }
 
         rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr subscription_0;
