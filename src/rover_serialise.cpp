@@ -1,4 +1,5 @@
 #include <chrono>
+#include <iostream>
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 
@@ -108,7 +109,7 @@ int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<MotorSerialiser>(argv[1]);
-    cout << "MotorSerialiser started" << endl;
+    std::cout << "MotorSerialiser started" << endl;
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
