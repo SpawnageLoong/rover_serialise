@@ -11,6 +11,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <libusb.h>
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 
