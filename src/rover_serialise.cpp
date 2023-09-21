@@ -135,6 +135,37 @@ class SerialPort {
         int fd_;
 };
 
+void timer(std::function<void(void)> func, unsigned int interval)
+{
+  std::thread([func, interval]()
+  { 
+    while (true)
+    { 
+      auto x = std::chrono::steady_clock::now() + std::chrono::milliseconds(interval);
+      func();
+      std::this_thread::sleep_until(x);
+    }
+  }).detach();
+}
+
+void sendPwmToSerial(SerialPort serialPortL, SerialPort serialPortR, MotorSerialiser motorSerialiser)
+{
+    uint32_t bytesL = 0x00000000;
+    uint32_t bytesR = 0x00000000;
+    uint8_t* bytesArrayL = reinterpret_cast<uint8_t*>(&bytes);
+    uint8_t* bytesArrayR = reinterpret_cast<uint8_t*>(&bytes);
+    bytesArrayL[0] = MotorSerialiser::motor0_pwm;
+    bytesArrayL[1] = MotorSerialiser::motor1_pwm;
+    bytesArrayL[2] = MotorSerialiser::motor2_pwm;
+    bytesArrayL[3] = 0x00;
+    bytesArrayR[0] = MotorSerialiser::motor3_pwm;
+    bytesArrayR[1] = MotorSerialiser::motor4_pwm;
+    bytesArrayR[2] = MotorSerialiser::motor5_pwm;
+    bytesArrayR[3] = 0x00;
+    serialPortL.WriteData(reinterpret_cast<const char*>(bytesArrayL), 4);
+    serialPortR.WriteData(reinterpret_cast<const char*>(bytesArrayR), 4);
+}
+
 int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
