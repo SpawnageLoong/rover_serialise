@@ -11,6 +11,8 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
+#include <bitset>
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -40,6 +42,31 @@ class MotorSerialiser : public rclcpp::Node
                 );
         }
 
+        int16_t getMotor0Pwm() const
+        {
+            return motor0_pwm;
+        }
+        int16_t getMotor1Pwm() const
+        {
+            return motor1_pwm;
+        }
+        int16_t getMotor2Pwm() const
+        {
+            return motor2_pwm;
+        }
+        int16_t getMotor3Pwm() const
+        {
+            return motor3_pwm;
+        }
+        int16_t getMotor4Pwm() const
+        {
+            return motor4_pwm;
+        }
+        int16_t getMotor5Pwm() const
+        {
+            return motor5_pwm;
+        }
+
     private:
         int16_t motor0_pwm = 0;
         int16_t motor1_pwm = 0;
@@ -51,6 +78,12 @@ class MotorSerialiser : public rclcpp::Node
         void pwm_callback(const rover_interfaces::msg::PwmArray &msg) const
         {
             RCLCPP_INFO(this->get_logger(), "Array PWM0 received: '%u'", msg.pwm0);
+            this->motor0_pwm = msg.pwm0;
+            this->motor1_pwm = msg.pwm1;
+            this->motor2_pwm = msg.pwm2;
+            this->motor3_pwm = msg.pwm3;
+            this->motor4_pwm = msg.pwm4;
+            this->motor5_pwm = msg.pwm5;
         }
         void timer_callback()
         {
@@ -150,20 +183,29 @@ void timer(std::function<void(void)> func, unsigned int interval)
 
 void sendPwmToSerial(SerialPort serialPortL, SerialPort serialPortR, MotorSerialiser motorSerialiser)
 {
-    uint32_t bytesL = 0x00000000;
-    uint32_t bytesR = 0x00000000;
-    uint8_t* bytesArrayL = reinterpret_cast<uint8_t*>(&bytes);
-    uint8_t* bytesArrayR = reinterpret_cast<uint8_t*>(&bytes);
-    bytesArrayL[0] = MotorSerialiser::motor0_pwm;
-    bytesArrayL[1] = MotorSerialiser::motor1_pwm;
-    bytesArrayL[2] = MotorSerialiser::motor2_pwm;
-    bytesArrayL[3] = 0x00;
-    bytesArrayR[0] = MotorSerialiser::motor3_pwm;
-    bytesArrayR[1] = MotorSerialiser::motor4_pwm;
-    bytesArrayR[2] = MotorSerialiser::motor5_pwm;
-    bytesArrayR[3] = 0x00;
-    serialPortL.WriteData(reinterpret_cast<const char*>(bytesArrayL), 4);
-    serialPortR.WriteData(reinterpret_cast<const char*>(bytesArrayR), 4);
+    int16_t motor0_pwm = motorSerialiser.getMotor0Pwm();
+    int16_t motor1_pwm = motorSerialiser.getMotor1Pwm();
+    int16_t motor2_pwm = motorSerialiser.getMotor2Pwm();
+    int16_t motor3_pwm = motorSerialiser.getMotor3Pwm();
+    int16_t motor4_pwm = motorSerialiser.getMotor4Pwm();
+    int16_t motor5_pwm = motorSerialiser.getMotor5Pwm();
+    uint8_t bytesArrayL[4];
+    uint8_t bytesArrayR[4];
+    bytesArrayL[0] = abs(motor0_pwm);
+    bytesArrayL[1] = abs(motor1_pwm);
+    bytesArrayL[2] = abs(motor2_pwm);
+    bytesArrayL[3] = ((uint8_t)(motor0_pwm < 0) << 5)  | ((uint8_t)(motor1_pwm < 0) << 4)  | ((uint8_t)(motor2_pwm < 0) << 3) |
+                     ((uint8_t)(motor0_pwm == 0) << 2) | ((uint8_t)(motor1_pwm == 0) << 1) | ((uint8_t)(motor2_pwm == 0));
+    bytesArrayR[0] = abs(motor3_pwm);
+    bytesArrayR[1] = abs(motor4_pwm);
+    bytesArrayR[2] = abs(motor5_pwm);
+    bytesArrayR[3] = ((uint8_t)(motor3_pwm < 0) << 5)  | ((uint8_t)(motor4_pwm < 0) << 4)  | ((uint8_t)(motor5_pwm < 0) << 3) |
+                     ((uint8_t)(motor3_pwm == 0) << 2) | ((uint8_t)(motor4_pwm == 0) << 1) | ((uint8_t)(motor5_pwm == 0));
+
+    std::cout << std::bitset<8>(bytesArrayL[3]);
+    std::cout << std::endl;
+    //serialPortL.WriteData(reinterpret_cast<const char*>(bytesArrayL), 4);
+    //serialPortR.WriteData(reinterpret_cast<const char*>(bytesArrayR), 4);
 }
 
 int main(int argc, char* argv[])
