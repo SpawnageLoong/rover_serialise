@@ -192,7 +192,7 @@ class SerialPort {
 
     private:
         int fd_;
-}
+};
 
 int main(int argc, char* argv[])
 {
