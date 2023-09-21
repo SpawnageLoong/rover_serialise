@@ -14,9 +14,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(rover_interfaces REQUIRED)
 
 add_executable(rover_serialise src/rover_serialise.cpp)
-ament_target_dependencies(rover_serialise rclcpp std_msgs)
+ament_target_dependencies(rover_serialise rclcpp std_msgs rover_interfaces)
 
 install(TARGETS
   rover_serialise
