@@ -2,8 +2,8 @@
  * @file rover_serialise.cpp
  * @author Richard Loong (richardloongcj@gmail.com)
  * @brief A ROS Node to serialise the target PWM values of the motors and send them over serial
- * @version 0.1
- * @date 2023-09-07
+ * @version 1.0
+ * @date 2023-09-26
  * 
  * @copyright Copyright (c) 2023
  * 
