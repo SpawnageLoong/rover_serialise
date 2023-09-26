@@ -35,11 +35,6 @@ class MotorSerialiser : public rclcpp::Node
                     rclcpp::SensorDataQoS(),
                     std::bind(&MotorSerialiser::pwm_callback, this, std::placeholders::_1)
                 );
-            timer =
-                this->create_wall_timer(
-                    std::chrono::milliseconds(1000),
-                    std::bind(&MotorSerialiser::timer_callback, this)
-                );
         }
 
         int16_t getMotor0Pwm() const
@@ -110,15 +105,8 @@ class MotorSerialiser : public rclcpp::Node
             setMotor4Pwm(msg.pwm4);
             setMotor5Pwm(msg.pwm5);
         }
-        void timer_callback()
-        {
-            RCLCPP_INFO(this->get_logger(), "Timer callback");
-            // TODO: Write the PWM values to the two byte arrays and send over serial
-
-        }
 
         rclcpp::Subscription<rover_interfaces::msg::PwmArray>::SharedPtr subscription_;
-        rclcpp::TimerBase::SharedPtr timer;
 };
 
 class SerialPort {
@@ -205,7 +193,7 @@ void timer(std::function<void(void)> func, unsigned int interval)
   }).detach();
 }
 
-void sendPwmToSerial(std::shared_ptr<MotorSerialiser> motorSerialiser)
+void writePwmArray(std::shared_ptr<MotorSerialiser> motorSerialiser, uint32_t &bytesL, uint32_t &bytesR)
 {
     int16_t motor0_pwm = motorSerialiser->getMotor0Pwm();
     int16_t motor1_pwm = motorSerialiser->getMotor1Pwm();
@@ -226,22 +214,36 @@ void sendPwmToSerial(std::shared_ptr<MotorSerialiser> motorSerialiser)
     bytesArrayR[3] = ((uint8_t)(motor3_pwm < 0) << 5)  | ((uint8_t)(motor4_pwm < 0) << 4)  | ((uint8_t)(motor5_pwm < 0) << 3) |
                      ((uint8_t)(motor3_pwm == 0) << 2) | ((uint8_t)(motor4_pwm == 0) << 1) | ((uint8_t)(motor5_pwm == 0));
 
-    std::cout << std::bitset<8>(bytesArrayL[3]) << std::endl;
-    //serialPortL.WriteData(reinterpret_cast<const char*>(bytesArrayL), 4);
-    //serialPortR.WriteData(reinterpret_cast<const char*>(bytesArrayR), 4);
+    //std::cout << std::bitset<8>(bytesArrayL[3]) << std::endl;
+    bytesL = (bytesArrayL[0] << 24) | (bytesArrayL[1] << 16) | (bytesArrayL[2] << 8) | bytesArrayL[3];
+    bytesR = (bytesArrayR[0] << 24) | (bytesArrayR[1] << 16) | (bytesArrayR[2] << 8) | bytesArrayR[3];
 }
 
 int main(int argc, char* argv[])
 {
+    uint32_t bytesL;
+    uint32_t bytesR;
+
     rclcpp::init(argc, argv);
     auto node = std::make_shared<MotorSerialiser>();
     std::cout << "MotorSerialiser started" << std::endl;
+
+    SerialPort serialPortL("/dev/pts/4", B115200);
+    std::cout << "Serial Port L opened" << std::endl;
+    SerialPort serialPortR("/dev/pts/11", B115200);
+    std::cout << "Serial Port R opened" << std::endl;
     
     std::thread timerThread([&]()
     {
         while (true)
         {
-            sendPwmToSerial(node);
+            writePwmArray(node, bytesL, bytesR);
+            char dataL[6] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
+            char dataR[6] = {0x0A, 0x24, (char)(bytesR >> 24), (char)(bytesR >> 16), (char)(bytesR >> 8), (char)bytesR};
+            //std::cout << "Left: " << std::bitset<32>(bytesL) << std::endl;
+            //std::cout << "Right: " << std::bitset<32>(bytesR) << std::endl;
+            serialPortL.WriteData((char*)&dataL, 6);
+            serialPortR.WriteData((char*)&dataR, 6);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     });
