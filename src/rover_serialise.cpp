@@ -17,6 +17,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <string>
+#include <cmath>
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 #include "rover_interfaces/msg/pwm_array.hpp"
@@ -29,13 +30,38 @@ class MotorSerialiser : public rclcpp::Node
         : Node("motor_serialiser")
         {
             this->declare_parameter("pwm_array_topic_name", "/motors_pwm");
+            this->declare_parameter("camera_cmd_topic_name", "/camera_cmd");
+            this->declare_parameter("max_servo_angle", 120);
 
+            cam_subscription = 
+                this->create_subscription<rover_interfaces::msg::CameraCmd>(
+                    this->get_parameter("camera_cmd_topic_name").as_string(),
+                    rclcpp::SensorDataQoS(),
+                    std::bind(&MotorSerialiser::camera_callback, this, std::placeholders::_1)
+                );
             subscription_ =
                 this->create_subscription<rover_interfaces::msg::PwmArray>(
                     this->get_parameter("pwm_array_topic_name").as_string(),
                     rclcpp::SensorDataQoS(),
                     std::bind(&MotorSerialiser::pwm_callback, this, std::placeholders::_1)
                 );
+        }
+
+        int16_t getCameraPan() const
+        {
+            return camera_pan;
+        }
+        int16_t getCameraTilt() const
+        {
+            return camera_tilt;
+        }
+        int16_t getPanPwm() const
+        {
+            return pan_pwm;
+        }
+        int16_t getTiltPwm() const
+        {
+            return tilt_pwm;
         }
 
         int16_t getMotor0Pwm() const
@@ -71,6 +97,11 @@ class MotorSerialiser : public rclcpp::Node
         int16_t motor4_pwm = 0;
         int16_t motor5_pwm = 0;
 
+        int16_t camera_pan = 0;
+        int16_t camera_tilt = 0;
+        uint8_t pan_pwm = 127;
+        uint8_t tilt_pwm = 127;
+
         void setMotor0Pwm(int16_t pwm)
         {
             motor0_pwm = pwm;
@@ -96,60 +127,6 @@ class MotorSerialiser : public rclcpp::Node
             motor5_pwm = pwm;
         }
 
-        void pwm_callback(const rover_interfaces::msg::PwmArray &msg)
-        {
-            RCLCPP_INFO(this->get_logger(), "Array PWM0 received: '%u'", msg.pwm0);
-            setMotor0Pwm(msg.pwm0);
-            setMotor1Pwm(msg.pwm1);
-            setMotor2Pwm(msg.pwm2);
-            setMotor3Pwm(msg.pwm3);
-            setMotor4Pwm(msg.pwm4);
-            setMotor5Pwm(msg.pwm5);
-        }
-
-        rclcpp::Subscription<rover_interfaces::msg::PwmArray>::SharedPtr subscription_;
-};
-
-class CameraPwm : public rclcpp::Node
-{
-    public:
-        CameraPwm()
-        : Node("camera_pwm")
-        {
-            this->declare_parameter("camera_cmd_topic_name", "/camera_cmd");
-            this->declare_parameter("max_servo_angle", 120);
-
-            subsciption_ = 
-                this->create_subscription<rover_interfaces::msg::CameraCmd>(
-                    this->get_parameter("camera_cmd_topic_name").as_string(),
-                    rclcpp::SensorDataQoS(),
-                    std::bind(&CameraPwm::camera_callback, this, std::placeholders::_1)
-                );
-        }
-
-        int16_t getCameraPan() const
-        {
-            return camera_pan;
-        }
-        int16_t getCameraTilt() const
-        {
-            return camera_tilt;
-        }
-        int16_t getPanPwm() const
-        {
-            return pan_pwm;
-        }
-        int16_t getTiltPwm() const
-        {
-            return tilt_pwm;
-        }
-
-    private:
-        int16_t camera_pan = 0;
-        int16_t camera_tilt = 0;
-        int16_t pan_pwm = 127;
-        int16_t tilt_pwm = 127;
-
         void setCameraPan(int16_t pan)
         {
             camera_pan = pan;
@@ -161,12 +138,25 @@ class CameraPwm : public rclcpp::Node
         void calcPanPwm(int16_t pan)
         {
             int16_t max_angle = this->get_parameter("max_servo_angle").as_int();
-            pan_pwm = pan/max_angle * 127 + 127;
+            double temp_pan = (double)pan/(double)max_angle * 127 + 127;
+            pan_pwm = floor(temp_pan);
         }
         void calcTiltPwm(int16_t tilt)
         {
             int16_t max_angle = this->get_parameter("max_servo_angle").as_int();
-            tilt_pwm = tilt/max_angle * 127 + 127;
+            double temp_tilt = (double)tilt/(double)max_angle * 127 + 127;
+            tilt_pwm = floor(temp_tilt);
+        }
+
+        void pwm_callback(const rover_interfaces::msg::PwmArray &msg)
+        {
+            RCLCPP_INFO(this->get_logger(), "Array PWM0 received: '%u'", msg.pwm0);
+            setMotor0Pwm(msg.pwm0);
+            setMotor1Pwm(msg.pwm1);
+            setMotor2Pwm(msg.pwm2);
+            setMotor3Pwm(msg.pwm3);
+            setMotor4Pwm(msg.pwm4);
+            setMotor5Pwm(msg.pwm5);
         }
 
         void camera_callback(const rover_interfaces::msg::CameraCmd &msg)
@@ -178,7 +168,8 @@ class CameraPwm : public rclcpp::Node
             calcTiltPwm(msg.tilt);
         }
 
-        rclcpp::Subscription<rover_interfaces::msg::CameraCmd>::SharedPtr subsciption_;
+        rclcpp::Subscription<rover_interfaces::msg::PwmArray>::SharedPtr subscription_;
+        rclcpp::Subscription<rover_interfaces::msg::CameraCmd>::SharedPtr cam_subscription;
 };
 
 class SerialPort {
@@ -295,6 +286,8 @@ int main(int argc, char* argv[])
 {
     uint32_t bytesL;
     uint32_t bytesR;
+    uint8_t pan_pwm;
+    uint8_t tilt_pwm;
 
     rclcpp::init(argc, argv);
     auto node = std::make_shared<MotorSerialiser>();
@@ -309,12 +302,14 @@ int main(int argc, char* argv[])
     {
         while (true)
         {
+            pan_pwm = node->getPanPwm();
+            tilt_pwm = node->getTiltPwm();
             writePwmArray(node, bytesL, bytesR);
-            char dataL[6] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
+            char dataL[8] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL, (char)(pan_pwm), (char)(tilt_pwm)};
             char dataR[6] = {0x0A, 0x24, (char)(bytesR >> 24), (char)(bytesR >> 16), (char)(bytesR >> 8), (char)bytesR};
             //std::cout << "Left: " << std::bitset<32>(bytesL) << std::endl;
             //std::cout << "Right: " << std::bitset<32>(bytesR) << std::endl;
-            serialPortL.WriteData((char*)&dataL, 6);
+            serialPortL.WriteData((char*)&dataL, 8);
             serialPortR.WriteData((char*)&dataR, 6);
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
