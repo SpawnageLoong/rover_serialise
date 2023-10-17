@@ -20,6 +20,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 #include "rover_interfaces/msg/pwm_array.hpp"
+#include "rover_interfaces/msg/camera_cmd.hpp"
 
 class MotorSerialiser : public rclcpp::Node
 {
@@ -107,6 +108,77 @@ class MotorSerialiser : public rclcpp::Node
         }
 
         rclcpp::Subscription<rover_interfaces::msg::PwmArray>::SharedPtr subscription_;
+};
+
+class CameraPwm : public rclcpp::Node
+{
+    public:
+        CameraPwm()
+        : Node("camera_pwm")
+        {
+            this->declare_parameter("camera_cmd_topic_name", "/camera_cmd");
+            this->declare_parameter("max_servo_angle", 120);
+
+            subsciption_ = 
+                this->create_subscription<rover_interfaces::msg::CameraCmd>(
+                    this->get_parameter("camera_cmd_topic_name").as_string(),
+                    rclcpp::SensorDataQoS(),
+                    std::bind(&CameraPwm::camera_callback, this, std::placeholders::_1)
+                );
+        }
+
+        int16_t getCameraPan() const
+        {
+            return camera_pan;
+        }
+        int16_t getCameraTilt() const
+        {
+            return camera_tilt;
+        }
+        int16_t getPanPwm() const
+        {
+            return pan_pwm;
+        }
+        int16_t getTiltPwm() const
+        {
+            return tilt_pwm;
+        }
+
+    private:
+        int16_t camera_pan = 0;
+        int16_t camera_tilt = 0;
+        int16_t pan_pwm = 127;
+        int16_t tilt_pwm = 127;
+
+        void setCameraPan(int16_t pan)
+        {
+            camera_pan = pan;
+        }
+        void setCameraTilt(int16_t tilt)
+        {
+            camera_tilt = tilt;
+        }
+        void calcPanPwm(int16_t pan)
+        {
+            int16_t max_angle = this->get_parameter("max_servo_angle").as_int();
+            pan_pwm = pan/max_angle * 127 + 127;
+        }
+        void calcTiltPwm(int16_t tilt)
+        {
+            int16_t max_angle = this->get_parameter("max_servo_angle").as_int();
+            tilt_pwm = tilt/max_angle * 127 + 127;
+        }
+
+        void camera_callback(const rover_interfaces::msg::CameraCmd &msg)
+        {
+            RCLCPP_INFO(this->get_logger(), "Camera Cmd received: '%u', '%u'", msg.pan, msg.tilt);
+            setCameraPan(msg.pan);
+            setCameraTilt(msg.tilt);
+            calcPanPwm(msg.pan);
+            calcTiltPwm(msg.tilt);
+        }
+
+        rclcpp::Subscription<rover_interfaces::msg::CameraCmd>::SharedPtr subsciption_;
 };
 
 class SerialPort {
