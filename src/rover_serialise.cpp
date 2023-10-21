@@ -228,12 +228,14 @@ class SerialPort {
             }
             ssize_t bytesWritten = write(fd_, data, length);
 
+            /*
             for (int i=0; i<length; i++)
             {
                 std::cout << "hex " << i << ": " << std::hex << data[i] << std::endl;
             }
+            */
 
-            std::cout << "Data Written: " << bytesWritten << " bytes" << data << std::endl; 
+            //std::cout << "Data Written: " << bytesWritten << " bytes" << data << std::endl; 
             return bytesWritten == static_cast<ssize_t>(length);
         }
 
@@ -290,7 +292,7 @@ void writePwmArray(std::shared_ptr<MotorSerialiser> motorSerialiser, uint32_t &b
     //std::cout << "Right 3: " << std::bitset<8>(bytesArrayR[3]) << std::endl;
     bytesL = (bytesArrayL[0] << 24) | (bytesArrayL[1] << 16) | (bytesArrayL[2] << 8) | bytesArrayL[3];
     bytesR = (bytesArrayR[0] << 24) | (bytesArrayR[1] << 16) | (bytesArrayR[2] << 8) | bytesArrayR[3];
-    std::cout << "Right Full: " << std::bitset<32>(bytesR) << std::endl;
+    //std::cout << "Right Full: " << std::bitset<32>(bytesR) << std::endl;
 }
 
 int main(int argc, char* argv[])
@@ -304,9 +306,9 @@ int main(int argc, char* argv[])
     auto node = std::make_shared<MotorSerialiser>();
     std::cout << "MotorSerialiser started" << std::endl;
 
-    //SerialPort serialPortL("/dev/pts/4", B115200);
+    SerialPort serialPortL("/dev/esp-left", B115200);
     std::cout << "Serial Port L opened" << std::endl;
-    SerialPort serialPortR("/dev/ttyUSB0", B115200);
+    SerialPort serialPortR("/dev/esp-right", B115200);
     std::cout << "Serial Port R opened" << std::endl;
     
     std::thread timerThread([&]()
@@ -316,14 +318,14 @@ int main(int argc, char* argv[])
             pan_pwm = node->getPanPwm();
             tilt_pwm = node->getTiltPwm();
             writePwmArray(node, bytesL, bytesR);
-            char dataL[8] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL, (char)(pan_pwm), (char)(tilt_pwm)};
+            char dataL[8] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
             char dataR[6] = {0x0A, 0x24, (char)(bytesR >> 24), (char)(bytesR >> 16), (char)(bytesR >> 8), (char)bytesR};
             //std::cout << "Left: " << std::bitset<32>(bytesL) << std::endl;
             //std::cout << "Right: " << std::bitset<32>(bytesR) << std::endl;
-            //serialPortL.WriteData((char*)&dataL, 8);
+            serialPortL.WriteData((char*)&dataL, 8);
             serialPortR.WriteData((char*)&dataR, 6);
             //std::cout << "right hex: " << std::hex << dataR[0] << dataR[1] << dataR[2] << dataR[3] << dataR[4] << dataR[5] << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     });
     timerThread.detach();
