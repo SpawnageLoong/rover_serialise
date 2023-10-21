@@ -150,7 +150,7 @@ class MotorSerialiser : public rclcpp::Node
 
         void pwm_callback(const rover_interfaces::msg::PwmArray &msg)
         {
-            RCLCPP_INFO(this->get_logger(), "Array PWM0 received: '%u'", msg.pwm0);
+            RCLCPP_INFO(this->get_logger(), "PWM Callback, Array PWM0 received: '%u'", msg.pwm0);
             setMotor0Pwm(msg.pwm0);
             setMotor1Pwm(msg.pwm1);
             setMotor2Pwm(msg.pwm2);
@@ -306,9 +306,9 @@ int main(int argc, char* argv[])
     auto node = std::make_shared<MotorSerialiser>();
     std::cout << "MotorSerialiser started" << std::endl;
 
-    SerialPort serialPortL("/dev/esp-left", B115200);
+    SerialPort serialPortL("/dev/ttyESPleft", B115200);
     std::cout << "Serial Port L opened" << std::endl;
-    SerialPort serialPortR("/dev/esp-right", B115200);
+    SerialPort serialPortR("/dev/ttyESPright", B115200);
     std::cout << "Serial Port R opened" << std::endl;
     
     std::thread timerThread([&]()
@@ -325,7 +325,7 @@ int main(int argc, char* argv[])
             serialPortL.WriteData((char*)&dataL, 8);
             serialPortR.WriteData((char*)&dataR, 6);
             //std::cout << "right hex: " << std::hex << dataR[0] << dataR[1] << dataR[2] << dataR[3] << dataR[4] << dataR[5] << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });
     timerThread.detach();
