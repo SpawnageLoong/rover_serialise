@@ -150,7 +150,7 @@ class MotorSerialiser : public rclcpp::Node
 
         void pwm_callback(const rover_interfaces::msg::PwmArray &msg)
         {
-            RCLCPP_INFO(this->get_logger(), "PWM Callback, Array PWM0 received: '%u'", msg.pwm0);
+            RCLCPP_INFO(this->get_logger(), "PWM Callback, Array PWM0 received: '%i'", msg.pwm0);
             setMotor0Pwm(msg.pwm0);
             setMotor1Pwm(msg.pwm1);
             setMotor2Pwm(msg.pwm2);
