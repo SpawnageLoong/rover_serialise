@@ -318,11 +318,11 @@ int main(int argc, char* argv[])
             pan_pwm = node->getPanPwm();
             tilt_pwm = node->getTiltPwm();
             writePwmArray(node, bytesL, bytesR);
-            char dataL[8] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
+            char dataL[6] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
             char dataR[6] = {0x0A, 0x24, (char)(bytesR >> 24), (char)(bytesR >> 16), (char)(bytesR >> 8), (char)bytesR};
             //std::cout << "Left: " << std::bitset<32>(bytesL) << std::endl;
             //std::cout << "Right: " << std::bitset<32>(bytesR) << std::endl;
-            serialPortL.WriteData((char*)&dataL, 8);
+            serialPortL.WriteData((char*)&dataL, 6);
             serialPortR.WriteData((char*)&dataR, 6);
             //std::cout << "right hex: " << std::hex << dataR[0] << dataR[1] << dataR[2] << dataR[3] << dataR[4] << dataR[5] << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
