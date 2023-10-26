@@ -279,6 +279,7 @@ void writePwmArray(std::shared_ptr<MotorSerialiser> motorSerialiser, uint32_t &b
     int16_t motor3_pwm = motorSerialiser->getMotor3Pwm();
     int16_t motor4_pwm = motorSerialiser->getMotor4Pwm();
     int16_t motor5_pwm = motorSerialiser->getMotor5Pwm();
+
     uint8_t bytesArrayL[4];
     uint8_t bytesArrayR[4];
     bytesArrayL[0] = abs(motor0_pwm);
@@ -286,6 +287,7 @@ void writePwmArray(std::shared_ptr<MotorSerialiser> motorSerialiser, uint32_t &b
     bytesArrayL[2] = abs(motor2_pwm);
     bytesArrayL[3] = ((uint8_t)(motor0_pwm < 0) << 5)  | ((uint8_t)(motor1_pwm < 0) << 4)  | ((uint8_t)(motor2_pwm < 0) << 3) |
                      ((uint8_t)(motor0_pwm == 0) << 2) | ((uint8_t)(motor1_pwm == 0) << 1) | ((uint8_t)(motor2_pwm == 0));
+
     bytesArrayR[0] = abs(motor3_pwm);
     bytesArrayR[1] = abs(motor4_pwm);
     bytesArrayR[2] = abs(motor5_pwm);
@@ -324,11 +326,12 @@ int main(int argc, char* argv[])
             pan_pwm = node->getPanPwm();
             tilt_pwm = node->getTiltPwm();
             writePwmArray(node, bytesL, bytesR);
-            char dataL[6] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
+            //char dataL[6] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL};
+            char dataL[8] = {0x0A, 0x24, (char)(bytesL >> 24), (char)(bytesL >> 16), (char)(bytesL >> 8), (char)bytesL, (char)pan_pwm, (char)tilt_pwm};
             char dataR[6] = {0x0A, 0x24, (char)(bytesR >> 24), (char)(bytesR >> 16), (char)(bytesR >> 8), (char)bytesR};
             //std::cout << "Left: " << std::bitset<32>(bytesL) << std::endl;
             //std::cout << "Right: " << std::bitset<32>(bytesR) << std::endl;
-            serialPortL.WriteData((char*)&dataL, 6);
+            serialPortL.WriteData((char*)&dataL, 8);
             serialPortR.WriteData((char*)&dataR, 6);
             //std::cout << "right hex: " << std::hex << dataR[0] << dataR[1] << dataR[2] << dataR[3] << dataR[4] << dataR[5] << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
