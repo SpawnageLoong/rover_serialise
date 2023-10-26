@@ -31,7 +31,7 @@ class MotorSerialiser : public rclcpp::Node
         {
             this->declare_parameter("pwm_array_topic_name", "/motors_pwm");
             this->declare_parameter("camera_cmd_topic_name", "/camera_cmd");
-            this->declare_parameter("max_servo_angle", 120);
+            this->declare_parameter("max_servo_angle", 90);
 
             cam_subscription = 
                 this->create_subscription<rover_interfaces::msg::CameraCmd>(
@@ -138,14 +138,20 @@ class MotorSerialiser : public rclcpp::Node
         void calcPanPwm(int16_t pan)
         {
             int16_t max_angle = this->get_parameter("max_servo_angle").as_int();
+	    pan_pwm = max_angle - pan;
+	    /*
             double temp_pan = (double)pan/(double)max_angle * 127 + 127;
             pan_pwm = floor(temp_pan);
+	    */
         }
         void calcTiltPwm(int16_t tilt)
         {
             int16_t max_angle = this->get_parameter("max_servo_angle").as_int();
+	    tilt_pwm = max_angle - tilt;
+	    /*
             double temp_tilt = (double)tilt/(double)max_angle * 127 + 127;
             tilt_pwm = floor(temp_tilt);
+	    */
         }
 
         void pwm_callback(const rover_interfaces::msg::PwmArray &msg)
